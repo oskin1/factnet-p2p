@@ -1,10 +1,15 @@
 package com.github.oskin1.factnet.p2p
 
+import java.net.InetSocketAddress
+
+import akka.util.ByteString
 import cats.Show
-import com.github.oskin1.factnet.p2p.domain.RemoteAddress
-import scodec.Codec
+import com.github.oskin1.factnet.domain.{Fact, Tag}
+import com.github.oskin1.factnet.p2p.codecs._
+import com.github.oskin1.factnet.p2p.domain.HexString
 import scodec.bits.{BitVector, ByteVector}
 import scodec.codecs._
+import scodec.{Attempt, Codec, DecodeResult}
 import tsec.hashing.jca.SHA256
 
 sealed abstract class NetworkMessage
@@ -27,18 +32,28 @@ object NetworkMessage {
       .caseP(Peers.MessageCode) { case h: Peers => h }(identity)(checkedCodec[Peers])
       .caseP(GetFacts.MessageCode) { case h: GetFacts => h }(identity)(checkedCodec[GetFacts])
       .caseP(Facts.MessageCode) { case h: Facts => h }(identity)(checkedCodec[Facts])
+
+  def length(message: NetworkMessage): Int =
+    codec.encode(message).require.toByteArray.length
+
+  def decode(raw: ByteString): Attempt[DecodeResult[NetworkMessage]] =
+    codec.decode(BitVector(raw.asByteBuffer))
+
+  def encode(message: NetworkMessage): ByteString =
+    ByteString(codec.encode(message).require.toByteArray)
 }
 
 final case class Handshake(
   version: Int,
-  timestamp: Long
+  timestamp: Long,
+  peerName: String
 ) extends NetworkMessage
 
 object Handshake {
   val MessageCode: Byte = 0
 
   implicit val codec: Codec[Handshake] =
-    (int32 :: int64).as[Handshake]
+    (int32 :: int64 :: variableSizeBits(uint16, utf8)).as[Handshake]
 }
 
 final case class GetPeers(maxElems: Int) extends NetworkMessage
@@ -50,22 +65,23 @@ object GetPeers {
     int32.as[GetPeers]
 }
 
-final case class Peers(addresses: List[RemoteAddress]) extends NetworkMessage
+final case class Peers(addresses: List[InetSocketAddress]) extends NetworkMessage
 
 object Peers {
   val MessageCode: Byte = 2
 
   implicit val codec: Codec[Peers] =
-    listOfN(uint16, implicitly[Codec[RemoteAddress]]).as[Peers]
+    listOfN(uint16, implicitly[Codec[InetSocketAddress]]).as[Peers]
 }
 
-final case class GetFacts(requester: RemoteAddress, tags: List[Tag], ttl: Int, timestamp: Long) extends NetworkMessage
+final case class GetFacts(requester: InetSocketAddress, tags: List[Tag], ttl: Int, timestamp: Long)
+  extends NetworkMessage
 
 object GetFacts {
   val MessageCode: Byte = 3
 
   implicit val codec: Codec[GetFacts] =
-    (implicitly[Codec[RemoteAddress]] :: listOfN(uint16, implicitly[Codec[Tag]]) :: int32 :: int64).as[GetFacts]
+    (implicitly[Codec[InetSocketAddress]] :: listOfN(uint16, implicitly[Codec[Tag]]) :: int32 :: int64).as[GetFacts]
 }
 
 final case class Facts(requestId: HexString, facts: List[Fact]) extends NetworkMessage
