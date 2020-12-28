@@ -1,4 +1,4 @@
-package com.github.oskin1.factnet.p2p
+package com.github.oskin1.factnet.network
 
 import java.net.{InetAddress, InetSocketAddress}
 

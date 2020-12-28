@@ -1,4 +1,4 @@
-package com.github.oskin1.factnet.p2p
+package com.github.oskin1.factnet.network
 
 import java.net.InetSocketAddress
 
@@ -7,8 +7,9 @@ import akka.io.Tcp
 import akka.io.Tcp._
 import akka.util.WallClock.AlwaysIncreasingClock.currentTimeMillis
 import akka.util.{ByteString, CompactByteString}
-import com.github.oskin1.factnet.p2p.NetworkController.{Handshaked, Seen}
-import com.github.oskin1.factnet.p2p.RemotePeerHandler.{Ack, CloseConnection, SendHandshake}
+import com.github.oskin1.factnet.network.NetworkController.{ConnectionLost, Handshaked, MessageFrom}
+import com.github.oskin1.factnet.network.RemotePeerHandler.{Ack, CloseConnection, SendHandshake}
+import scodec.Err.InsufficientBits
 import scodec.{Attempt, DecodeResult}
 
 import scala.annotation.tailrec
@@ -75,6 +76,7 @@ final class RemotePeerHandler(
         else if (cc.isAborted) "aborted locally"
         else ""
       log.info(s"Connection closed to $remoteAddress, reason: " + reason)
+      networkControllerRef ! ConnectionLost(remoteAddress)
       context stop self
   }
 
@@ -128,15 +130,16 @@ final class RemotePeerHandler(
 
       @tailrec
       def process(): Unit =
-        NetworkMessage.decode(data) match {
+        NetworkMessage.decode(chunksBuffer) match {
           case Attempt.Successful(DecodeResult(message, _)) =>
-            log.info(s"Received message $message")
-            networkControllerRef ! Seen(remoteAddress, currentTimeMillis())
+            log.info(s"Received message $message from [$remoteAddress]")
+            networkControllerRef ! MessageFrom(remoteAddress, message, currentTimeMillis())
             val messageLength = NetworkMessage.length(message)
             chunksBuffer = chunksBuffer.drop(messageLength)
             process()
+          case Attempt.Failure(_: InsufficientBits) => // skip
           case Attempt.Failure(cause) =>
-            log.info(s"Received invalid message from $remoteAddress. ${cause.message}")
+            log.info(s"Received invalid message from [$remoteAddress]. ${cause.message}")
         }
 
       process()
@@ -156,7 +159,7 @@ final class RemotePeerHandler(
   private def pushAllWithNoAck(): Unit =
     outgoingMessagesBuffer.foreach {
       case (_, msg) =>
-        connection ! Write(msg, NoAck)
+        connection ! Write(msg)
     }
 }
 

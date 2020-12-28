@@ -1,4 +1,4 @@
-package com.github.oskin1.factnet.p2p
+package com.github.oskin1.factnet.network
 
 import java.net.InetSocketAddress
 
@@ -6,15 +6,15 @@ import scodec.Codec
 import scodec.bits.ByteVector
 import scodec.codecs.{bytes, uint16, variableSizeBits}
 
-package object domain {
+object domain {
 
-  final case class HexString(value: String) extends AnyVal
+  final case class RequestId(value: String) extends AnyVal
 
-  object HexString {
+  object RequestId {
 
-    implicit val codec: Codec[HexString] =
+    implicit val codec: Codec[RequestId] =
       variableSizeBits(uint16, bytes).xmap(
-        x => HexString(x.toBase16),
+        x => RequestId(x.toBase16),
         s => ByteVector.fromValidHex(s.value)
       )
   }
@@ -22,6 +22,7 @@ package object domain {
   final case class RemoteId(value: String) extends AnyVal
 
   object RemoteId {
+
     def apply(inetSocketAddress: InetSocketAddress): RemoteId =
       new RemoteId(inetSocketAddress.toString)
   }

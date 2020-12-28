@@ -9,6 +9,10 @@ resolvers += Resolver.sonatypeRepo("snapshots")
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka"     %% "akka-actor"      % "2.6.10",
+  "com.typesafe.akka"     %% "akka-stream"     % "2.6.10",
+  "com.typesafe.akka"     %% "akka-http"       % "10.2.2",
+  "io.circe"              %% "circe-core"      % "0.13.0",
+  "io.circe"              %% "circe-generic"   % "0.13.0",
   "org.scodec"            %% "scodec-bits"     % "1.1.21",
   "org.scodec"            %% "scodec-core"     % "1.11.7",
   "eu.timepit"            %% "refined"         % "0.9.18",

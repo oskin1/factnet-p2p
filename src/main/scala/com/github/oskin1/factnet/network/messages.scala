@@ -1,12 +1,12 @@
-package com.github.oskin1.factnet.p2p
+package com.github.oskin1.factnet.network
 
 import java.net.InetSocketAddress
 
 import akka.util.ByteString
 import cats.Show
-import com.github.oskin1.factnet.domain.{Fact, Tag}
-import com.github.oskin1.factnet.p2p.codecs._
-import com.github.oskin1.factnet.p2p.domain.HexString
+import com.github.oskin1.factnet.domain.{Tag, TaggedFact}
+import com.github.oskin1.factnet.network.codecs._
+import com.github.oskin1.factnet.network.domain.RequestId
 import scodec.bits.{BitVector, ByteVector}
 import scodec.codecs._
 import scodec.{Attempt, Codec, DecodeResult}
@@ -74,21 +74,21 @@ object Peers {
     listOfN(uint16, implicitly[Codec[InetSocketAddress]]).as[Peers]
 }
 
-final case class GetFacts(requester: InetSocketAddress, tags: List[Tag], ttl: Int, timestamp: Long)
+final case class GetFacts(requestId: RequestId, tags: List[Tag], ttl: Int, timestamp: Long)
   extends NetworkMessage
 
 object GetFacts {
   val MessageCode: Byte = 3
 
   implicit val codec: Codec[GetFacts] =
-    (implicitly[Codec[InetSocketAddress]] :: listOfN(uint16, implicitly[Codec[Tag]]) :: int32 :: int64).as[GetFacts]
+    (implicitly[Codec[RequestId]] :: listOfN(uint16, implicitly[Codec[Tag]]) :: int32 :: int64).as[GetFacts]
 }
 
-final case class Facts(requestId: HexString, facts: List[Fact]) extends NetworkMessage
+final case class Facts(requestId: RequestId, facts: List[TaggedFact]) extends NetworkMessage
 
 object Facts {
   val MessageCode: Byte = 4
 
   implicit val codec: Codec[Facts] =
-    (implicitly[Codec[HexString]] :: listOfN(uint16, implicitly[Codec[Fact]])).as[Facts]
+    (implicitly[Codec[RequestId]] :: listOfN(uint16, implicitly[Codec[TaggedFact]])).as[Facts]
 }
