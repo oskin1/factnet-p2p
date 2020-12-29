@@ -4,7 +4,7 @@ import java.net.InetSocketAddress
 
 import scodec.Codec
 import scodec.bits.ByteVector
-import scodec.codecs.{bytes, uint16, variableSizeBits}
+import scodec.codecs.{bytes, fixedSizeBytes}
 
 object domain {
 
@@ -13,7 +13,7 @@ object domain {
   object RequestId {
 
     implicit val codec: Codec[RequestId] =
-      variableSizeBits(uint16, bytes).xmap(
+      fixedSizeBytes(32, bytes).xmap(
         x => RequestId(x.toBase16),
         s => ByteVector.fromValidHex(s.value)
       )
