@@ -34,6 +34,7 @@ final class RemotePeerHandler(
 
   def receive: Receive = handshaking
 
+  // Handshaking mode, other messages are ignore until then.
   private def handshaking: Receive = {
     case Received(data) =>
       NetworkMessage.decode(data) match {
@@ -52,6 +53,7 @@ final class RemotePeerHandler(
       connection ! Write(rawMessage)
   }
 
+  // Normal working mode
   private def normal: Receive =
     localWriting orElse
     reading orElse
