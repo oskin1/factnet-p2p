@@ -1,3 +1,4 @@
+
 name := "factnet-p2p"
 
 version := "0.1"
@@ -6,6 +7,17 @@ scalaVersion := "2.13.4"
 
 resolvers += Resolver.sonatypeRepo("public")
 resolvers += Resolver.sonatypeRepo("snapshots")
+
+test in assembly := {}
+assemblyMergeStrategy in assembly := {
+  case "logback.xml"                                             => MergeStrategy.first
+  case "module-info.class"                                       => MergeStrategy.discard
+  case other if other.contains("scala/annotation/nowarn.class")  => MergeStrategy.first
+  case other if other.contains("scala/annotation/nowarn$.class") => MergeStrategy.first
+  case other if other.contains("io.netty.versions")              => MergeStrategy.first
+  case other                                                     => (assemblyMergeStrategy in assembly).value(other)
+}
+mainClass in assembly := Some("com.github.oskin1.factnet.Application")
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka"     %% "akka-actor"      % "2.6.10",

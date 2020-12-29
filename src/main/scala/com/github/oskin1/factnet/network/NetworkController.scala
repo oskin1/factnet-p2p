@@ -82,7 +82,7 @@ final class NetworkController(
           // 3. spawn a new connection handler
           val connection   = sender()
           val handlerProps = RemotePeerHandler.props(connection, self, remoteAddress)
-          val handler      = context.actorOf(handlerProps, s"RemotePeerHandler")
+          val handler      = context.actorOf(handlerProps)
           context.watch(handler)
           // 4. send handshake to the peer
           handler ! SendHandshake(config.localName)
@@ -186,14 +186,16 @@ final class NetworkController(
         // Handle search request
         // 1. Perform local lookup
         factsServiceRef ! Get(tags, Some(requestId))
-        // 2. Register request to pass results back to the correct requester
-        pendingRequests += requestId -> Some(senderAddress)
-        // 3. Decrement request TTL
-        val ttlLeft = ttl - 1
-        // 4. Broadcast request to all connections except for the one this request came from (unless request is expired).
-        if (ttlLeft > 0) {
-          val peersToBroadcastTo = connections.getAll.filterNot(_ == senderAddress)
-          broadcastTo(peersToBroadcastTo, req.copy(ttl = ttlLeft))
+        // 2. Register request in order to pass results back to the correct requester
+        if (!pendingRequests.contains(requestId)) {
+          pendingRequests += requestId -> Some(senderAddress)
+          // 3. Decrement request TTL
+          val ttlLeft = ttl - 1
+          // 4. Broadcast request to all connections except for the one this request came from (unless request is expired).
+          if (ttlLeft > 0) {
+            val peersToBroadcastTo = connections.getAll.filterNot(_ == senderAddress)
+            broadcastTo(peersToBroadcastTo, req.copy(ttl = ttlLeft))
+          }
         }
       case res @ Facts(requestId, facts) =>
         // Handle search result
@@ -205,8 +207,8 @@ final class NetworkController(
               handlerRef =>
                 // 3a. Send search result to the requester
                 handlerRef ! res
-                // 4a. Remove request from the registry
-                pendingRequests -= requestId
+//                // 4a. Remove request from the registry
+//                pendingRequests -= requestId
             }
           case Some(None) =>
             // 2b. In case requester address is None save the result to local store

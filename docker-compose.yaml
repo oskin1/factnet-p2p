@@ -1,0 +1,45 @@
+version: '3.4'
+services:
+  node1:
+    image: oskin1/factnet:latest
+    environment:
+      HTTP_ADDRESS: "0.0.0.0:7081"
+      TCP_ADDRESS: "0.0.0.0:9031"
+      NODE_NAME: "node1"
+      PEER_1: "node2:9032"
+      PEER_2: "node3:9033"
+    ports:
+      - "7081:7081"
+      - "9031:9031"
+    depends_on:
+      - node2
+    build:
+      context: .
+  node2:
+    image: oskin1/factnet:latest
+    environment:
+      HTTP_ADDRESS: "0.0.0.0:7082"
+      TCP_ADDRESS: "0.0.0.0:9032"
+      NODE_NAME: "node2"
+      PEER_1: "node1:9031"
+      PEER_2: "node3:9033"
+    ports:
+      - "7082:7082"
+      - "9032:9032"
+    depends_on:
+      - node3
+    build:
+      context: .
+  node3:
+    image: oskin1/factnet:latest
+    environment:
+      HTTP_ADDRESS: "0.0.0.0:7083"
+      TCP_ADDRESS: "0.0.0.0:9033"
+      NODE_NAME: "node3"
+      PEER_1: "node1:9031"
+      PEER_2: "node2:9032"
+    ports:
+      - "7083:7083"
+      - "9033:9033"
+    build:
+      context: .
