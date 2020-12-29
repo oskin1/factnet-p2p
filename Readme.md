@@ -63,7 +63,7 @@ factnet-p2p_node3_1   java -jar /factnet.jar   Up      0.0.0.0:7083->7083/tcp, 0
 | size | format            | description
 |:-----|:------------------|:-----------
 |32    |bytes              |Request ID
-|~     |fact[]            |Array of facts matching corresponding search request
+|~     |fact[]             |Array of facts matching corresponding search request
 
 ### Notes
 
