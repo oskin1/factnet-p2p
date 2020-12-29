@@ -207,8 +207,6 @@ final class NetworkController(
               handlerRef =>
                 // 3a. Send search result to the requester
                 handlerRef ! res
-//                // 4a. Remove request from the registry
-//                pendingRequests -= requestId
             }
           case Some(None) =>
             // 2b. In case requester address is None save the result to local store
