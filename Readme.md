@@ -67,7 +67,7 @@ factnet-p2p_node3_1   java -jar /factnet.jar   Up      0.0.0.0:7083->7083/tcp, 0
 
 ### Notes
 
-`varstring` - UTF-8 string prefixed with 16 bit unsigned integer encoding string length in bits.
-`inetSocketAddress` - IPv4 or IPv6 address bytes prefixed with 8 bit unsigned integer encoding address length in bytes + port encoded as 32 bit signed integer.
-`[]` - array of elements prefixed with 16 bit unsigned integer encoding number of elements in the array.
-`fact` - `varstring` (fact) + `varstring[]` (array of tags)
+* `varstring` - UTF-8 string prefixed with 16 bit unsigned integer encoding string length in bits.
+* `inetSocketAddress` - IPv4 or IPv6 address bytes prefixed with 8 bit unsigned integer encoding address length in bytes + port encoded as 32 bit signed integer.
+* `[]` - array of elements prefixed with 16 bit unsigned integer encoding number of elements in the array.
+* `fact` - `varstring` (fact) + `varstring[]` (array of tags)
