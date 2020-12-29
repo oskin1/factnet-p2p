@@ -1,13 +1,10 @@
 package com.github.oskin1.factnet.config
 
-import java.net.{InetAddress, InetSocketAddress}
+import java.net.InetSocketAddress
 
-import cats.syntax.either._
 import pureconfig.ConfigReader
-import pureconfig.error.CannotConvert
 
 import scala.concurrent.duration.FiniteDuration
-import scala.util.Try
 
 final case class NetworkConfig(
   localName: String,
@@ -19,13 +16,6 @@ final case class NetworkConfig(
 )
 
 object NetworkConfig {
-
-  implicit val inetSocketAddressConfigReader: ConfigReader[InetSocketAddress] =
-    ConfigReader[String].emap { s =>
-      val Array(host, port) = s.split(':')
-      Try(new InetSocketAddress(InetAddress.getByName(host), port.toInt)).toEither
-        .leftMap(t => CannotConvert(s, "InetSocketAddress", t.getMessage))
-    }
 
   implicit val configReader: ConfigReader[NetworkConfig] =
     pureconfig.generic.semiauto.deriveReader

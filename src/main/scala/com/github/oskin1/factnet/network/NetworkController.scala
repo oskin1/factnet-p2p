@@ -90,6 +90,8 @@ final class NetworkController(
     case ConnectionLost(remoteAddress) =>
       // 1. remove corresponding handler from the registry
       handlers -= remoteAddress
+      // 2. drop lost connection
+      connections = connections.remove(remoteAddress)
     case MessageFrom(remoteAddress, message, seenAt) =>
       // 1. update timestamp `remoteAddress` was last seen
       connections = connections.seen(remoteAddress, seenAt)
@@ -107,17 +109,21 @@ final class NetworkController(
 
   private def search: Receive = {
     case SearchResult(facts, Some(requestId)) =>
-      pendingRequests.get(requestId) match {
-        case Some(Some(requesterAddress)) =>
-          handlers.get(requesterAddress).fold(log.warning(s"Handler for [$requesterAddress] not found")) { handlerRef =>
-            handlerRef ! Facts(requestId, facts)
-          }
-        case _ =>
+      if (facts.nonEmpty) {
+        pendingRequests.get(requestId) match {
+          case Some(Some(requesterAddress)) =>
+            handlers.get(requesterAddress).fold(log.warning(s"Handler for [$requesterAddress] not found")) { handlerRef =>
+              handlerRef ! Facts(requestId, facts)
+            }
+          case _ =>
+        }
       }
     case SearchFor(tags) =>
       val requestId = RequestId(Base16.encode(Random.nextBytes(32)))
       pendingRequests += requestId -> None
       broadcastTo(connections.getAll, GetFacts(requestId, tags, 10, currentTimeMillis()))
+    case ListConnections =>
+      sender() ! Connections(connections.getAll)
   }
 
   private def connectTo(peers: List[InetSocketAddress]): Unit =
@@ -155,7 +161,11 @@ final class NetworkController(
         factsServiceRef ! Get(tags, Some(requestId))
         pendingRequests += requestId -> Some(senderAddress)
         val ttlLeft = ttl - 1
-        if (ttlLeft > 0) broadcastTo(connections.getAll, req.copy(ttl = ttlLeft))
+        if (ttlLeft > 0) {
+          // broadcast request to all connections except for the one this request came from.
+          val peersToBroadcastTo = connections.getAll.filterNot(_ == senderAddress)
+          broadcastTo(peersToBroadcastTo, req.copy(ttl = ttlLeft))
+        }
       case res @ Facts(requestId, facts) =>
         pendingRequests.get(requestId) match {
           case Some(Some(requesterAddress)) =>
@@ -182,6 +192,8 @@ object NetworkController {
   final case class Handshaked(remoteAddress: InetSocketAddress, ts: Long)
   final case class MessageFrom(remoteAddress: InetSocketAddress, message: NetworkMessage, ts: Long)
   final case class SearchFor(tags: List[Tag])
+  case object ListConnections
+  final case class Connections(peers: List[InetSocketAddress])
 
   def props(config: NetworkConfig, factsServiceRef: ActorRef): Props =
     Props(new NetworkController(config, factsServiceRef))
