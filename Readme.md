@@ -58,7 +58,7 @@ factnet-p2p_node3_1   java -jar /factnet.jar   Up      0.0.0.0:7083->7083/tcp, 0
 |4     |int32              |Request TTL
 |8     |int64              |UNIX timestamp millis
 
-### GetFacts
+### Facts
 
 | size | format            | description
 |:-----|:------------------|:-----------

@@ -5,11 +5,16 @@ import java.net.InetSocketAddress
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.io.Tcp._
 import akka.io.{IO, Tcp}
+import akka.util.WallClock.AlwaysIncreasingClock.currentTimeMillis
 import com.github.oskin1.factnet.config.NetworkConfig
 import com.github.oskin1.factnet.domain.Tag
 import com.github.oskin1.factnet.network.NetworkController._
+import com.github.oskin1.factnet.network.RemotePeerHandler.SendHandshake
 import com.github.oskin1.factnet.network.domain.RequestId
-import com.github.oskin1.factnet.services.FactsService.SearchResult
+import com.github.oskin1.factnet.services.FactsService.{Add, Get, SearchResult}
+import scorex.util.encode.Base16
+
+import scala.util.Random
 
 final class NetworkController(
   config: NetworkConfig,
