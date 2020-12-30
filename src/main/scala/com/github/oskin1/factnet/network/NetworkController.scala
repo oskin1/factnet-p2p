@@ -109,8 +109,8 @@ final class NetworkController(
       // 2. register a handler for a confirmed connection
       handlers += remoteAddress -> sender()
       // 3. discover more peers if needed
-      val neededConnection = config.minConnections - connections.size
-      if (neededConnection > 0) sender() ! GetPeers(neededConnection)
+      val neededConnections = config.minConnections - connections.size
+      if (neededConnections > 0) sender() ! GetPeers(neededConnections)
   }
 
   private def search: Receive = {
@@ -189,12 +189,12 @@ final class NetworkController(
         // 2. Register request in order to pass results back to the correct requester
         if (!pendingRequests.contains(requestId)) {
           pendingRequests += requestId -> Some(senderAddress)
-          // 3. Decrement request TTL
-          val ttlLeft = ttl - 1
+          // 3. Calculate remaining request TTL
+          val ttlRem = ttl - 1
           // 4. Broadcast request to all connections except for the one this request came from (unless request is expired).
-          if (ttlLeft > 0) {
+          if (ttlRem > 0) {
             val peersToBroadcastTo = connections.getAll.filterNot(_ == senderAddress)
-            broadcastTo(peersToBroadcastTo, req.copy(ttl = ttlLeft))
+            broadcastTo(peersToBroadcastTo, req.copy(ttl = ttlRem))
           }
         }
       case res @ Facts(requestId, facts) =>
