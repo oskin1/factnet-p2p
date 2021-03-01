@@ -14,6 +14,7 @@ import com.github.oskin1.factnet.network.domain.RequestId
 import com.github.oskin1.factnet.services.FactsService.{Add, Get, SearchResult}
 import scorex.util.encode.Base16
 
+import scala.collection.mutable
 import scala.util.Random
 
 final class NetworkController(
@@ -121,12 +122,13 @@ final class NetworkController(
         pendingRequests.get(requestId) match {
           case Some(Some(requesterAddress)) =>
             // 2. Find a corresponding handler
-            handlers
-              .get(requesterAddress)
-              .fold(log.warning(s"Handler for [$requesterAddress] not found")) { handlerRef =>
+            handlers.get(requesterAddress) match {
+              case Some(handlerRef) =>
                 // 3. Send result to the remote peer
                 handlerRef ! Facts(requestId, facts)
-              }
+              case None =>
+                log.warning(s"Handler for [$requesterAddress] not found")
+            }
           case _ =>
         }
       }
@@ -149,15 +151,18 @@ final class NetworkController(
 
   /** Broadcast a given `message` to a given `peers`.
     */
-  private def broadcastTo(peers: List[InetSocketAddress], message: NetworkMessage): Unit =
-    peers
-      .foldLeft(List.empty[ActorRef]) {
-        case (acc, peer) =>
-          handlers.get(peer).fold(acc)(handlerRef => acc :+ handlerRef)
+  private def broadcastTo(peers: List[InetSocketAddress], message: NetworkMessage): Unit = {
+    var collectedHandlers = Array.empty[ActorRef]
+    peers.foreach { peer =>
+      handlers.get(peer) match {
+        case Some(handlerRef) => collectedHandlers = collectedHandlers.appended(handlerRef)
+        case None             => log.warning(s"Handler for [$peer] not found")
       }
-      .foreach { handlerRef =>
-        handlerRef ! message
-      }
+    }
+    collectedHandlers.foreach { handlerRef =>
+      handlerRef ! message
+    }
+  }
 
   /** Handle specific network messages.
     */
@@ -203,10 +208,12 @@ final class NetworkController(
         pendingRequests.get(requestId) match {
           case Some(Some(requesterAddress)) =>
             // 2a. In case requester address is present find the corresponding handler
-            handlers.get(requesterAddress).fold(log.warning(s"Handler for [$requesterAddress] not found")) {
-              handlerRef =>
+            handlers.get(requesterAddress) match {
+              case Some(handlerRef) =>
                 // 3a. Send search result to the requester
                 handlerRef ! res
+              case None =>
+                log.warning(s"Handler for [$requesterAddress] not found")
             }
           case Some(None) =>
             // 2b. In case requester address is None save the result to local store
