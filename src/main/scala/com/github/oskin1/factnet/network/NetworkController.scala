@@ -14,6 +14,7 @@ import com.github.oskin1.factnet.network.domain.RequestId
 import com.github.oskin1.factnet.services.FactsService.{Add, Get, SearchResult}
 import scorex.util.encode.Base16
 
+import scala.collection.mutable
 import scala.util.Random
 
 final class NetworkController(
